@@ -34,6 +34,12 @@ Este documento presenta la arquitectura y la implementación del proyecto Práct
 * **Corrección de Dispersión:** El principal desafío fue la extrema dispersión estadística. Variables cruciales como la Variabilidad de Largo Plazo (`ALTV`) presentaron un porcentaje significativo de *outliers*. La aplicación rigurosa de la función `capping()` fue crítica, logrando que el reporte de `check_data_completeness...` posterior al tratamiento confirmara que el `Porctentaje Outliers` es cero** para las variables Continuas, indicando la estabilidad estadística del conjunto de datos. 
 * **Clasificación de Variables:** La clasificación automática diferenció correctamente las variables: las métricas fisiológicas de gran rango son Continuas, mientras que los contadores de eventos (`AC`, `DL`, `DS`) son Discretas y se tratarán como categóricas en el análisis de modelado.
 
+###Archivos
+**code.py** es el archivo principal que ejecuta las funciones *python3 code.py*
+Se implementó **Streamlit** para poderlo ejecutar  *streamlit run app.py*
+Para ejecutar los test se debe ejecutar *pytest*
+
+
 ---
 
 ### 📦 Código de `requirements.txt`
