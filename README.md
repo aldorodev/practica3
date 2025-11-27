@@ -26,7 +26,7 @@ Este documento presenta la arquitectura y la implementación del proyecto Práct
 
 ---
 
-### Conclusiones Técnicas del Análisis `CTG.csv`
+### Conclusiones 
 
 
 
