@@ -2,25 +2,16 @@ import pandas as pd
 import numpy as np
 from typing import Dict, Any, Tuple
 from .preprocessing import detectar_outliers_iqr
-
-
+from . import utils 
 
 def check_data_completeness_AldoAlbertoRodriguezFlores(df: pd.DataFrame) -> pd.DataFrame:
     """
     Genera un DataFrame de resumen de calidad de datos, incluyendo:
     - Conteo de Nulos y Porc de Completitud.
     - Tipo de Dato y Clasificación (Continua, Discreta, Categórica de Alta Cardinalidad).
+    - Tipo General (Numérica o Categórica según utils.py).
     - Estadísticos de Dispersión (IQR, límites y conteo/Porc de Outliers para columnas Continuas).
     
-    NOTA: En el flujo principal de 'code.py', esta función se llama con el 
-    DataFrame ya procesado (imputado y con capping aplicado), lo cual 
-    asegura que los estadísticos de dispersión sean finales.
-
-    Criterios de Clasificación:
-    - Continua: Más de 10 valores únicos Y tipo numérico.
-    - Discreta: Menos o igual a 10 valores únicos (cualquier tipo).
-    - Categórica (Alto Cardinalidad): Más de 10 valores únicos Y NO numérico.
-
     Args:
         df: DataFrame de entrada (se espera que sea el df_capping para el reporte final).
 
@@ -30,6 +21,10 @@ def check_data_completeness_AldoAlbertoRodriguezFlores(df: pd.DataFrame) -> pd.D
     
     resumen_dic: Dict[str, Dict[str, Any]] = {}
     
+    #Obtenemos las listas de columnas usando utils.py
+    col_numericas = utils.columnas_numericas(df)
+    col_categoricas = utils.columnas_categoricas(df)
+    
     for col in df.columns:
         num_nulos = df[col].isnull().sum()
         num_filas = len(df)
@@ -38,18 +33,31 @@ def check_data_completeness_AldoAlbertoRodriguezFlores(df: pd.DataFrame) -> pd.D
         dtype_str = str(df[col].dtype)
         num_unicos = df[col].nunique()
         
-        #  Clasificación
-        if num_unicos > 10 and pd.api.types.is_numeric_dtype(df[col]):
-            clasificacion = "Continua"
-        elif num_unicos <= 10:
-            clasificacion = "Discreta"
+        # --- Clasificación usando las listas de utils.py 
+        if col in col_numericas:
+            tipo_general = "Numérica" 
+            if num_unicos > 10:
+                clasificacion = "Continua"
+            else:
+                clasificacion = "Discreta" 
+        elif col in col_categoricas:
+            tipo_general = "Categórica" 
+            if num_unicos > 10:
+                clasificacion = "Categórica" 
+            else:
+                 clasificacion = "Discreta"
         else:
-            clasificacion = "Categórica" 
+            tipo_general = "Otro" 
+            if num_unicos <= 10:
+                clasificacion = "Discreta"
+            else:
+                clasificacion = "Otro (Alta Cardinalidad)" 
             
         resumen_dic[col] = {
             "Conteo Nulos": int(num_nulos),
             "Porc de Completitud": float(porcen_completo),
             "Tipo de Dato": dtype_str,
+            "Tipo General": tipo_general, 
             "Clasificación": clasificacion, 
             "Valores Únicos": int(num_unicos), 
             
@@ -64,7 +72,6 @@ def check_data_completeness_AldoAlbertoRodriguezFlores(df: pd.DataFrame) -> pd.D
     df_resumen = pd.DataFrame.from_dict(resumen_dic, orient='index')
     
     # Dispersión (IQR y Outliers) 
-    # Solo calculamos para conlumnas Continuas
     col_continuas = df_resumen[df_resumen["Clasificación"] == "Continua"].index.tolist()
     
     if col_continuas:
@@ -85,14 +92,14 @@ def check_data_completeness_AldoAlbertoRodriguezFlores(df: pd.DataFrame) -> pd.D
     # Eliminar la columna auxiliar y ordenar las columnas para una mejor presentación
     df_resumen = df_resumen.drop(columns=["Valores Únicos"])
     
+    # ORDEN DE COLUMNAS 
     col_orden = [
-        "Conteo Nulos", "Porc de Completitud", "Tipo de Dato", "Clasificación",
-        "IQR", "Lim Inf Outlier", "Lim Sup Outlier", "Conteo Outliers", 
-        "Porctentaje Outliers"
+        "Conteo Nulos", "Porc de Completitud", "Tipo de Dato", "Tipo General", 
+        "Clasificación", "IQR", "Lim Inf Outlier", "Lim Sup Outlier", 
+        "Conteo Outliers", "Porctentaje Outliers"
     ]
     df_resumen = df_resumen[col_orden]
     
     pd.options.display.float_format = '{:,.2f}'.format
     
     return df_resumen.sort_values(by="Porctentaje Outliers", ascending=True)
-
